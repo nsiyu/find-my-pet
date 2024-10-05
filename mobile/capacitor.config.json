@@ -1,0 +1,11 @@
+{
+  "appId": "com.example.app",
+  "appName": "mobile",
+  "webDir": "dist",
+  "plugins": {
+    "Camera": {
+      "photosPermission": "This app needs access to your photos to allow you to report lost or found pets.",
+      "cameraPermission": "This app needs camera access to take photos of lost or found pets."
+    }
+  }
+}

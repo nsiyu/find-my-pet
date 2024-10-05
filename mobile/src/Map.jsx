@@ -4,6 +4,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { v4 as uuidv4 } from "uuid";
 import { FaPaw } from "react-icons/fa";
 import ReportPopup from "./ReportPopup";
+import axios from "axios"; // Make sure to install axios: npm install axios
 
 const Map = () => {
   const mapContainerRef = useRef(null);
@@ -12,21 +13,24 @@ const Map = () => {
   const [draggingPin, setDraggingPin] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
   const [newMarker, setNewMarker] = useState(null);
-  const [missingPets, setMissingPets] = useState([]);
+  const [foundPets, setFoundPets] = useState([]);
 
   mapboxgl.accessToken =
     "pk.eyJ1Ijoid2lsbHk5MjAzMDUiLCJhIjoiY20xdTdkZWZyMGI0YTJsb2d6d3YxcGdtaiJ9.ZDORFIzrPgzd8bDfuemB4Q";
 
-  // Fetch missing pet data
+  const fetchFoundPets = async () => {
+    try {
+      const response = await fetch("http://10.0.1.230:5001/found-pets");
+      const data = await response.json();
+      setFoundPets(data.pets);
+    } catch (error) {
+      console.error("Error fetching found pets:", error);
+    }
+  };
+
+  // Fetch found pet data
   useEffect(() => {
-    fetch("http://10.0.1.230:5001/missing-pets") // Replace with your backend URL
-      .then((response) => response.json())
-      .then((data) => {
-        setMissingPets(data.pets);
-      })
-      .catch((error) => {
-        console.error("Error fetching missing pets:", error);
-      });
+    fetchFoundPets();
   }, []);
 
   useEffect(() => {
@@ -68,23 +72,23 @@ const Map = () => {
     };
   }, [map]);
 
-  // Add markers for missing pets
+  // Add markers for found pets
   useEffect(() => {
-    if (map && missingPets.length > 0) {
-      missingPets.forEach((pet) => {
-        if (pet.lastKnownLocation) {
-          const { longitude, latitude } = pet.lastKnownLocation;
+    if (map && foundPets.length > 0) {
+      foundPets.forEach((pet) => {
+        if (pet.location) {
+          const { longitude, latitude } = pet.location;
 
           // Create a DOM element for the marker
           const el = document.createElement("div");
-          el.className = "missing-pet-marker";
+          el.className = "found-pet-marker";
           el.style.width = "30px";
-          el.style.height = "40px"; // Adjusted height to match SVG aspect ratio
+          el.style.height = "40px";
           el.style.backgroundImage = `url('data:image/svg+xml;charset=utf-8,${encodeURIComponent(
             `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" fill="none">
-              <path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 24 12 24s12-16.8 12-24c0-6.6-5.4-12-12-12z" fill="#FF5252"/>
+              <path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 24 12 24s12-16.8 12-24c0-6.6-5.4-12-12-12z" fill="#4CAF50"/>
               <circle cx="12" cy="12" r="8" fill="#FFFFFF"/>
-              <path d="M12 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 10c-.6 0-1-.4-1-1v-2c0-.6.4-1 1-1s1 .4 1 1v2c0 .6-.4 1-1 1z" fill="#FF5252"/>
+              <path d="M12 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2zm0 10c-.6 0-1-.4-1-1v-2c0-.6.4-1 1-1s1 .4 1 1v2c0 .6-.4 1-1 1z" fill="#4CAF50"/>
             </svg>`
           )}')`;
           el.style.backgroundSize = "contain";
@@ -95,31 +99,20 @@ const Map = () => {
           // Create popup content
           const popupContent = document.createElement("div");
           popupContent.innerHTML = `
-            <h3 style="color: black; font-weight: bold;">${pet.name}</h3>
-            <p style="color: black;"><strong>Breed:</strong> ${
-              pet.breed || "N/A"
+            <h3 style="color: black; font-weight: bold;">Found Pet</h3>
+            <p style="color: black;"><strong>Date:</strong> ${
+              pet.date || "N/A"
             }</p>
-            <p style="color: black;"><strong>Age:</strong> ${
-              pet.age || "N/A"
+            <p style="color: black;"><strong>Shelter:</strong> ${
+              pet.shelter || "N/A"
             }</p>
-            <p style="color: black;"><strong>Color:</strong> ${
-              pet.color || "N/A"
-            }</p>
-            <p style="color: black;"><strong>Gender:</strong> ${
-              pet.gender || "N/A"
-            }</p>
-            ${
-              pet.description
-                ? `<p style="color: black;"><strong>Description:</strong> ${pet.description}</p>`
-                : ""
-            }
           `;
 
           // Add image to popup if available
-          if (pet.imageUrl) {
+          if (pet.pictureUrl) {
             const img = document.createElement("img");
-            img.src = pet.imageUrl;
-            img.alt = pet.name;
+            img.src = pet.pictureUrl;
+            img.alt = "Found Pet";
             img.style.width = "100%";
             img.style.height = "auto";
             img.style.objectFit = "cover";
@@ -143,7 +136,7 @@ const Map = () => {
         }
       });
     }
-  }, [map, missingPets]);
+  }, [map, foundPets]);
 
   const addMarker = (e) => {
     if (draggingPin) {
@@ -170,15 +163,74 @@ const Map = () => {
     }
   }, [map, draggingPin]);
 
-  const handleSubmit = (reportData) => {
-    const markerData = {
-      ...newMarker,
-      ...reportData,
-    };
+  const handleSubmit = async (reportData) => {
+    const { date, shelter, picture } = reportData;
+    const { lng, lat } = newMarker;
 
-    setMarkers([...markers, markerData]);
-    setShowPopup(false);
-    setNewMarker(null);
+    console.log("Received report data:", reportData);
+
+    const formData = new FormData();
+
+    formData.append("shelter", shelter || "Unknown Shelter");
+
+    if (!picture) {
+      console.error("Picture is undefined, cannot submit form");
+      alert("Please select a picture before submitting.");
+      return;
+    }
+    formData.append("picture", picture);
+
+    formData.append(
+      "location",
+      JSON.stringify({ latitude: lat, longitude: lng })
+    );
+
+    formData.append("date", date || new Date().toISOString().split("T")[0]);
+
+    console.log("FormData entries before sending:");
+    for (let [key, value] of formData.entries()) {
+      console.log(key, value);
+    }
+
+    try {
+      const response = await axios.post(
+        "http://10.0.1.230:5001/register-found-pet",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.status === 201) {
+        const markerData = {
+          ...newMarker,
+          ...reportData,
+          id: response.data.petId,
+          pictureCid: response.data.pictureCid,
+        };
+
+        setFoundPets([...foundPets, markerData]);
+        setShowPopup(false);
+        setNewMarker(null);
+
+        alert("Found pet registered successfully!");
+
+        // Refresh the page after a short delay
+        setTimeout(() => {
+          window.location.reload();
+        }, 100); // 1 second delay before reload
+      }
+    } catch (error) {
+      console.error(
+        "Error registering found pet:",
+        error.response?.data || error.message
+      );
+      alert(
+        "An error occurred while registering the found pet. Please try again."
+      );
+    }
   };
 
   useEffect(() => {
@@ -203,7 +255,7 @@ const Map = () => {
               marker.petType === "found" ? "Found Pet" : "Lost Pet"
             }</h3>
             <p style="color: black;">Date: ${marker.date || "N/A"}</p>
-            <p style="color: black;">Contact: ${marker.contact || "N/A"}</p>
+            <p style="color: black;">shelter: ${marker.shelter || "N/A"}</p>
           `;
 
           // Add images to popup if available
@@ -255,6 +307,24 @@ const Map = () => {
         >
           <FaPaw className="text-xl mr-2" />
           <span>Found</span>
+        </button>
+        <button
+          onClick={fetchFoundPets}
+          className="bg-blue-500 text-white p-2 rounded-md shadow-lg flex items-center"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5 mr-2"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Refresh
         </button>
       </div>
       {showPopup && (

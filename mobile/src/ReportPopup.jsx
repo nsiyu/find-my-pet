@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
+import { Camera } from "@capacitor/camera";
 import { FaTimes, FaCamera } from "react-icons/fa";
 
-// Add this style block at the top of your file
 const preventZoomStyle = `
   input, textarea, select {
     font-size: 16px;
@@ -14,18 +13,41 @@ const ReportPopup = ({ onSubmit, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Form submission started");
+
     const formData = new FormData(e.target);
 
-    const reportData = {
-      date: formData.get("date") || null,
-      contact: formData.get("contact") || "",
-      images: images,
-    };
+    if (images.length > 0) {
+      try {
+        const response = await fetch(images[0]);
+        const blob = await response.blob();
+        formData.append("picture", blob, "image.jpg");
 
-    onSubmit(reportData);
+        console.log("FormData entries:");
+        for (let [key, value] of formData.entries()) {
+          console.log(key, value);
+        }
+
+        // Convert FormData to a plain object
+        const plainObject = {};
+        for (let [key, value] of formData.entries()) {
+          plainObject[key] = value;
+        }
+
+        onSubmit(plainObject);
+      } catch (error) {
+        console.error("Error processing image:", error);
+        alert(
+          "An error occurred while processing the image. Please try again."
+        );
+      }
+    } else {
+      alert("Please select at least one image");
+    }
   };
 
-  const handleImageSelection = async () => {
+  const handleImageSelection = async (e) => {
+    e.preventDefault(); // Prevent any default action
     try {
       const permissionStatus = await Camera.checkPermissions();
       if (permissionStatus.photos !== "granted") {
@@ -56,7 +78,6 @@ const ReportPopup = ({ onSubmit, onCancel }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      {/* Add this style tag */}
       <style>{preventZoomStyle}</style>
       <div className="bg-white rounded-lg shadow-xl w-11/12 max-w-md max-h-[90vh] flex flex-col">
         <div className="flex justify-between items-center p-4 border-b border-gray-200">
@@ -79,12 +100,14 @@ const ReportPopup = ({ onSubmit, onCancel }) => {
             name="date"
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
             placeholder="Date"
+            required
           />
           <input
             type="text"
-            name="contact"
-            placeholder="Contact Information"
+            name="shelter"
+            placeholder="Shelter Name"
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+            required
           />
           <button
             type="button"

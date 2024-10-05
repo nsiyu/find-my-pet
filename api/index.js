@@ -167,7 +167,7 @@ app.get('/user-missing-pets', verifyToken, async (req, res) => {
       try {
         const signedUrl = await pinata.gateways.createSignedURL({
           cid: pet.image,
-          expires: 3600 // URL expires in 1 hour
+          expires: 3600
         });
         return { ...pet, imageUrl: signedUrl };
       } catch (error) {

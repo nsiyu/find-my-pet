@@ -5,6 +5,9 @@ import PetInfoForm from './components/PetInfoForm';
 import React from 'react'
 import LoginPage from './components/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import CommunityForum from './components/CommunityForum';
+import AIAssistant from './components/AIAssistant';
+import Help from './components/Help';
 
 function App() {
   return (
@@ -25,6 +28,21 @@ function App() {
           <Route path="/form" element={
             <ProtectedRoute>
               <PetInfoForm />
+            </ProtectedRoute>
+          } />
+          <Route path="/ai-assistant" element={
+            <ProtectedRoute>
+              <AIAssistant />
+            </ProtectedRoute>
+          } />
+          <Route path="/help" element={
+            <ProtectedRoute>
+              <Help />
+            </ProtectedRoute>
+          } />
+           <Route path="/forum" element={
+            <ProtectedRoute>
+              <CommunityForum />
             </ProtectedRoute>
           } />
           <Route path="*" element={<Navigate to="/" replace />} />

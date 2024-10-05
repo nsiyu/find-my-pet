@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #F0F8FF; /* Alice Blue */
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
 .mapboxgl-ctrl-logo {
   display: none !important;
 }

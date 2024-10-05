@@ -14,6 +14,12 @@ const LandingPage: React.FC = () => {
     navigate(`/${destination}`);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userId');
+    navigate('/login');
+  };
+
   useEffect(() => {
     if (!MAPBOX_ACCESS_TOKEN || !mapContainerRef.current) return;
 

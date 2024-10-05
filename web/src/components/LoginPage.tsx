@@ -5,12 +5,34 @@ import { FaUser, FaLock } from 'react-icons/fa';
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Login attempted with:', { email, password });
-    navigate('/');
+    setError('');
+
+    try {
+      const response = await fetch('http://localhost:5001/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
+      }
+
+      const data = await response.json();
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('userId', data.user_id);
+      navigate('/');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    }
   };
 
   return (
@@ -19,6 +41,9 @@ const LoginPage: React.FC = () => {
         <h2 className="text-3xl font-extrabold text-caribbean-current text-center mb-6">
           Login to FindMyPet
         </h2>
+        {error && (
+          <p className="text-red-500 text-center mb-4">{error}</p>
+        )}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-caribbean-current">

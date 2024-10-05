@@ -9,6 +9,7 @@ interface PetInfo {
   gender: string;
   description: string;
   image: File | null;
+  lastKnownLocation: { latitude: number; longitude: number };
 }
 
 const PetInfoForm: React.FC = () => {
@@ -21,8 +22,10 @@ const PetInfoForm: React.FC = () => {
     gender: '',
     description: '',
     image: null,
+    lastKnownLocation: { latitude: 0, longitude: 0 },
   });
   const [step, setStep] = useState(1);
+  const [error, setError] = useState('');
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -42,11 +45,58 @@ const PetInfoForm: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPetInfo((prevState) => ({
+      ...prevState,
+      lastKnownLocation: {
+        ...prevState.lastKnownLocation,
+        [name]: parseFloat(value),
+      },
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Pet Info Submitted:', petInfo);
-    // Here you would typically send the data to your backend
-    navigate('/');
+    setError('');
+
+    const formData = new FormData();
+    formData.append('name', petInfo.name);
+    formData.append('age', petInfo.age);
+    formData.append('breed', petInfo.breed);
+    formData.append('color', petInfo.color);
+    formData.append('gender', petInfo.gender);
+    formData.append('description', petInfo.description);
+    formData.append('lastKnownLocation', JSON.stringify(petInfo.lastKnownLocation));
+    if (petInfo.image) {
+      formData.append('image', petInfo.image);
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch('http://localhost:5001/register-missing-pet', {
+        method: 'POST',
+        headers: {
+          'Authorization': token,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to register pet');
+      }
+
+      const data = await response.json();
+      console.log('Pet registered successfully:', data);
+      navigate('/');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    }
   };
 
   return (
@@ -55,6 +105,9 @@ const PetInfoForm: React.FC = () => {
         <h2 className="text-3xl font-extrabold text-caribbean-current text-center mb-6">
           {step === 1 ? 'Register Your Pet' : 'Upload Pet Photo'}
         </h2>
+        {error && (
+          <p className="text-red-500 text-center mb-4">{error}</p>
+        )}
         <form onSubmit={handleSubmit} className="space-y-6">
           {step === 1 ? (
             <>
@@ -119,6 +172,24 @@ const PetInfoForm: React.FC = () => {
                     placeholder="Describe your pet..."
                   ></textarea>
                 </div>
+                <InputField
+                  label="Last Known Latitude"
+                  name="latitude"
+                  value={petInfo.lastKnownLocation.latitude.toString()}
+                  onChange={handleLocationChange}
+                  placeholder="e.g., 40.7128"
+                  type="number"
+                  step="0.0001"
+                />
+                <InputField
+                  label="Last Known Longitude"
+                  name="longitude"
+                  value={petInfo.lastKnownLocation.longitude.toString()}
+                  onChange={handleLocationChange}
+                  placeholder="e.g., -74.0060"
+                  type="number"
+                  step="0.0001"
+                />
               </div>
               <div>
                 <button
@@ -189,13 +260,15 @@ const InputField: React.FC<{
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder: string;
-}> = ({ label, name, value, onChange, placeholder }) => (
+  type?: string;
+  step?: string;
+}> = ({ label, name, value, onChange, placeholder, type = "text", step }) => (
   <div>
     <label htmlFor={name} className="block text-sm font-medium text-caribbean-current">
       {label}
     </label>
     <input
-      type="text"
+      type={type}
       id={name}
       name={name}
       value={value}
@@ -203,6 +276,7 @@ const InputField: React.FC<{
       className="mt-1 block w-full border border-tiffany-blue rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-atomic-tangerine focus:border-atomic-tangerine sm:text-sm"
       placeholder={placeholder}
       required
+      step={step}
     />
   </div>
 );

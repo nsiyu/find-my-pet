@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import mapboxgl, { Map, NavigationControl, Marker } from 'mapbox-gl';
+import mapboxgl, { Map, NavigationControl, Marker, Popup } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useNavigate } from 'react-router-dom';
 import { FaHome, FaFilter, FaSearch } from 'react-icons/fa';
 import React from 'react';
 import Select from 'react-select';
+import PetPopup from './PetPopup';
 
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_API_KEY;
 
@@ -33,6 +34,7 @@ function PetDatabase() {
     status: '',
     location: '',
   });
+  const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
 
   const getAuthToken = (): string | null => {
     return localStorage.getItem('token');
@@ -46,10 +48,9 @@ function PetDatabase() {
         style: 'mapbox://styles/mapbox/streets-v11',
         center: [-74.5, 40],
         zoom: 3,
-        attributionControl: false  // Disable default attribution control
+        attributionControl: false  
       });
 
-      // Add custom attribution control
       initializedMap.addControl(new mapboxgl.AttributionControl({
         customAttribution: 'Powered by FindMyPet',
         compact: true
@@ -114,11 +115,9 @@ function PetDatabase() {
 
   useEffect(() => {
     if (map && allPets.length > 0) {
-      // Remove existing markers
       Object.values(markersRef.current).forEach(marker => marker.remove());
       markersRef.current = {};
 
-      // Add new markers
       allPets.forEach(pet => {
         const el = document.createElement('div');
         el.className = 'marker';
@@ -133,10 +132,13 @@ function PetDatabase() {
           .setLngLat(pet.coordinates)
           .addTo(map);
 
+        marker.getElement().addEventListener('click', () => {
+          setSelectedPet(pet);
+        });
+
         markersRef.current[pet.id] = marker;
       });
 
-      // Fit map to show all markers
       const bounds = new mapboxgl.LngLatBounds();
       allPets.forEach(pet => bounds.extend(pet.coordinates));
       map.fitBounds(bounds, { padding: 50, maxZoom: 15, duration: 1000 });
@@ -160,20 +162,10 @@ function PetDatabase() {
       map.flyTo({
         center: pet.coordinates,
         zoom: 14,
-        speed: 5, // Increase speed (default is 1.2)
-        curve: 1.5, // Increase curve for faster initial and final movement
+        speed: 5,
+        curve: 1.5,
         essential: true
       });
-
-      // Animate marker
-      const marker = markersRef.current[pet.id];
-      if (marker) {
-        const el = marker.getElement();
-        el.style.transform = 'scale(1.5)';
-        setTimeout(() => {
-          el.style.transform = 'scale(1)';
-        }, 300);
-      }
     }
   };
 
@@ -297,6 +289,12 @@ function PetDatabase() {
             )}
           </div>
         </div>
+        {selectedPet && (
+          <PetPopup
+            pet={selectedPet}
+            onClose={() => setSelectedPet(null)}
+          />
+        )}
       </div>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-500">{error}</p>}

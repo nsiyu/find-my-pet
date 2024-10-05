@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { v4 as uuidv4 } from "uuid";
-import { FaSearch, FaPaw } from "react-icons/fa";
+import { FaPaw } from "react-icons/fa";
 import ReportPopup from "./ReportPopup";
 
 const Map = () => {
@@ -12,9 +12,22 @@ const Map = () => {
   const [draggingPin, setDraggingPin] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
   const [newMarker, setNewMarker] = useState(null);
+  const [missingPets, setMissingPets] = useState([]);
 
   mapboxgl.accessToken =
     "pk.eyJ1Ijoid2lsbHk5MjAzMDUiLCJhIjoiY20xdTdkZWZyMGI0YTJsb2d6d3YxcGdtaiJ9.ZDORFIzrPgzd8bDfuemB4Q";
+
+  // Fetch missing pet data
+  useEffect(() => {
+    fetch("http://10.0.1.230:5001/missing-pets") // Replace with your backend URL
+      .then((response) => response.json())
+      .then((data) => {
+        setMissingPets(data.pets);
+      })
+      .catch((error) => {
+        console.error("Error fetching missing pets:", error);
+      });
+  }, []);
 
   useEffect(() => {
     const initializeMap = ({ setMap, mapContainerRef }) => {
@@ -54,6 +67,83 @@ const Map = () => {
       if (map) map.remove();
     };
   }, [map]);
+
+  // Add markers for missing pets
+  useEffect(() => {
+    if (map && missingPets.length > 0) {
+      missingPets.forEach((pet) => {
+        if (pet.lastKnownLocation) {
+          const { longitude, latitude } = pet.lastKnownLocation;
+
+          // Create a DOM element for the marker
+          const el = document.createElement("div");
+          el.className = "missing-pet-marker";
+          el.style.width = "30px";
+          el.style.height = "40px"; // Adjusted height to match SVG aspect ratio
+          el.style.backgroundImage = `url('data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+            `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" fill="none">
+              <path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 24 12 24s12-16.8 12-24c0-6.6-5.4-12-12-12z" fill="#FF5252"/>
+              <circle cx="12" cy="12" r="8" fill="#FFFFFF"/>
+              <path d="M12 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 10c-.6 0-1-.4-1-1v-2c0-.6.4-1 1-1s1 .4 1 1v2c0 .6-.4 1-1 1z" fill="#FF5252"/>
+            </svg>`
+          )}')`;
+          el.style.backgroundSize = "contain";
+          el.style.backgroundRepeat = "no-repeat";
+          el.style.backgroundPosition = "center";
+          el.style.cursor = "pointer";
+
+          // Create popup content
+          const popupContent = document.createElement("div");
+          popupContent.innerHTML = `
+            <h3 style="color: black; font-weight: bold;">${pet.name}</h3>
+            <p style="color: black;"><strong>Breed:</strong> ${
+              pet.breed || "N/A"
+            }</p>
+            <p style="color: black;"><strong>Age:</strong> ${
+              pet.age || "N/A"
+            }</p>
+            <p style="color: black;"><strong>Color:</strong> ${
+              pet.color || "N/A"
+            }</p>
+            <p style="color: black;"><strong>Gender:</strong> ${
+              pet.gender || "N/A"
+            }</p>
+            ${
+              pet.description
+                ? `<p style="color: black;"><strong>Description:</strong> ${pet.description}</p>`
+                : ""
+            }
+          `;
+
+          // Add image to popup if available
+          if (pet.imageUrl) {
+            const img = document.createElement("img");
+            img.src = pet.imageUrl;
+            img.alt = pet.name;
+            img.style.width = "100%";
+            img.style.height = "auto";
+            img.style.objectFit = "cover";
+            img.style.borderRadius = "4px";
+            img.style.marginTop = "10px";
+            popupContent.appendChild(img);
+          }
+
+          // Create a popup
+          const popup = new mapboxgl.Popup({
+            offset: 25,
+            closeButton: false,
+            closeOnClick: true,
+          }).setDOMContent(popupContent);
+
+          // Add marker to the map
+          new mapboxgl.Marker(el)
+            .setLngLat([longitude, latitude])
+            .setPopup(popup)
+            .addTo(map);
+        }
+      });
+    }
+  }, [map, missingPets]);
 
   const addMarker = (e) => {
     if (draggingPin) {
@@ -100,12 +190,11 @@ const Map = () => {
           el.className = "custom-marker";
           el.style.width = "20px";
           el.style.height = "30px";
-          el.style.backgroundImage = `url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23${
-            marker.petType === "found" ? "4CAF50" : "FF5722"
-          }' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z'%3E%3C/path%3E%3Ccircle cx='12' cy='10' r='3'%3E%3C/circle%3E%3C/svg%3E")`;
-          el.style.backgroundSize = "cover";
+          el.style.backgroundImage = `url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 36' fill='none'%3E%3Cpath d='M12 0C5.4 0 0 5.4 0 12c0 7.2 12 24 12 24s12-16.8 12-24c0-6.6-5.4-12-12-12z' fill='%234CAF50'/%3E%3Ccircle cx='12' cy='12' r='8' fill='%23FFFFFF'/%3E%3Cpath d='M12 9a3 3 0 110-6 3 3 0 010 6zm0 3c-.6 0-1 .4-1 1v2c0 .6.4 1 1 1s1-.4 1-1v-2c0-.6-.4-1-1-1z' fill='%234CAF50'/%3E%3C/svg%3E")`;
+          el.style.backgroundSize = "contain";
           el.style.backgroundRepeat = "no-repeat";
           el.style.backgroundPosition = "center";
+          el.style.cursor = "pointer";
 
           // Create popup content
           const popupContent = document.createElement("div");
@@ -139,7 +228,7 @@ const Map = () => {
             popupContent.appendChild(imageContainer);
           }
 
-          // Create a popup without the close button, but closable on map click
+          // Create a popup
           const popup = new mapboxgl.Popup({
             offset: 25,
             closeButton: false,

@@ -7,32 +7,28 @@ import {
   FaChevronUp,
 } from "react-icons/fa";
 import PhotoCapture from "./PhotoCapture";
-import axios from "axios";
 
 const CameraComponent = () => {
+  const [missingPets, setMissingPets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showCamera, setShowCamera] = useState(false);
   const [expandedPet, setExpandedPet] = useState(null);
   const [expandedImage, setExpandedImage] = useState(null);
-  const [missingPets, setMissingPets] = useState([]);
 
   useEffect(() => {
-    fetchMissingPets();
+    fetch("http://10.0.1.230:5001/missing-pets") // Replace with your actual backend URL
+      .then((response) => response.json())
+      .then((data) => {
+        setMissingPets(data.pets);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error fetching missing pets:", error);
+        setError(error);
+        setLoading(false);
+      });
   }, []);
-
-  const fetchMissingPets = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        "http://localhost:5001/user-missing-pets",
-        {
-          headers: { Authorization: token },
-        }
-      );
-      setMissingPets(response.data.pets);
-    } catch (error) {
-      console.error("Error fetching missing pets:", error);
-    }
-  };
 
   const handlePhotoCapture = (imageUri) => {
     console.log("Captured image URI:", imageUri);
@@ -44,18 +40,21 @@ const CameraComponent = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  const formatLocation = (location) => {
-    if (
-      location &&
-      typeof location.latitude === "number" &&
-      typeof location.longitude === "number"
-    ) {
-      return `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(
-        4
-      )}`;
-    }
-    return "Location not available";
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-500">Loading missing pets...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-red-500">Error loading missing pets.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-gray-100">
@@ -79,7 +78,7 @@ const CameraComponent = () => {
                   >
                     <div className="flex items-center">
                       <img
-                        src={`https://gateway.pinata.cloud/ipfs/${pet.image}`}
+                        src={pet.imageUrl}
                         alt={pet.name}
                         className="w-16 h-16 object-cover rounded-full mr-4 border-2 border-blue-500"
                       />
@@ -113,35 +112,32 @@ const CameraComponent = () => {
                         <span className="font-semibold">Gender:</span>{" "}
                         {pet.gender}
                       </p>
-                      <p className="text-gray-700">
-                        <span className="font-semibold">Description:</span>{" "}
-                        {pet.description}
-                      </p>
+                      {pet.description && (
+                        <p className="text-gray-700">
+                          <span className="font-semibold">Description:</span>{" "}
+                          {pet.description}
+                        </p>
+                      )}
                       <p className="text-gray-700">
                         <span className="font-semibold">Missing since:</span>{" "}
                         {formatDate(pet.createdAt)}
                       </p>
-                      <p className="text-gray-700 flex items-center">
-                        <span className="font-semibold mr-1">
-                          Last Known Location:
-                        </span>
-                        <FaMapMarkerAlt className="text-red-500 mr-1" />
-                        {formatLocation(pet.lastKnownLocation)}
-                      </p>
-                      <p className="text-gray-700">
-                        <span className="font-semibold">Status:</span>{" "}
-                        {pet.status}
-                      </p>
-                      <div className="mt-2 flex flex-wrap">
+                      {pet.lastKnownLocation && (
+                        <p className="text-gray-700 flex items-center">
+                          <span className="font-semibold mr-1">
+                            Last Known Location:
+                          </span>
+                          <FaMapMarkerAlt className="text-red-500 mr-1" />
+                          {pet.lastKnownLocation.latitude.toFixed(4)},{" "}
+                          {pet.lastKnownLocation.longitude.toFixed(4)}
+                        </p>
+                      )}
+                      <div className="mt-2">
                         <img
-                          src={`https://gateway.pinata.cloud/ipfs/${pet.image}`}
+                          src={pet.imageUrl}
                           alt={pet.name}
-                          className="w-16 h-16 object-cover rounded-md m-1 cursor-pointer hover:opacity-75 transition-opacity duration-200"
-                          onClick={() =>
-                            setExpandedImage(
-                              `https://gateway.pinata.cloud/ipfs/${pet.image}`
-                            )
-                          }
+                          className="w-full h-auto object-cover rounded-md cursor-pointer hover:opacity-75 transition-opacity duration-200"
+                          onClick={() => setExpandedImage(pet.imageUrl)}
                         />
                       </div>
                     </div>

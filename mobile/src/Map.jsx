@@ -95,23 +95,61 @@ const Map = () => {
     if (map) {
       markers.forEach((marker) => {
         if (!map.getLayer(`marker-${marker.id}`)) {
+          // Create a DOM element for the marker
           const el = document.createElement("div");
-          el.className = "marker";
-          el.style.backgroundColor =
-            marker.petType === "found" ? "#4CAF50" : "#FF5722";
-          el.style.width = "30px";
+          el.className = "custom-marker";
+          el.style.width = "20px";
           el.style.height = "30px";
-          el.style.borderRadius = "50%";
-          el.style.display = "flex";
-          el.style.justifyContent = "center";
-          el.style.alignItems = "center";
-          el.innerHTML =
-            marker.petType === "found"
-              ? '<i class="fas fa-paw" style="color: white;"></i>'
-              : '<i class="fas fa-search" style="color: white;"></i>';
+          el.style.backgroundImage = `url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23${
+            marker.petType === "found" ? "4CAF50" : "FF5722"
+          }' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z'%3E%3C/path%3E%3Ccircle cx='12' cy='10' r='3'%3E%3C/circle%3E%3C/svg%3E")`;
+          el.style.backgroundSize = "cover";
+          el.style.backgroundRepeat = "no-repeat";
+          el.style.backgroundPosition = "center";
 
+          // Create popup content
+          const popupContent = document.createElement("div");
+          popupContent.innerHTML = `
+            <h3 style="color: black; font-weight: bold;">${
+              marker.petType === "found" ? "Found Pet" : "Lost Pet"
+            }</h3>
+            <p style="color: black;">Date: ${marker.date || "N/A"}</p>
+            <p style="color: black;">Contact: ${marker.contact || "N/A"}</p>
+          `;
+
+          // Add images to popup if available
+          if (marker.images && marker.images.length > 0) {
+            const imageContainer = document.createElement("div");
+            imageContainer.style.display = "flex";
+            imageContainer.style.flexWrap = "wrap";
+            imageContainer.style.gap = "5px";
+            imageContainer.style.marginTop = "10px";
+
+            marker.images.forEach((image, index) => {
+              const img = document.createElement("img");
+              img.src = image;
+              img.alt = `Pet image ${index + 1}`;
+              img.style.width = "80px";
+              img.style.height = "80px";
+              img.style.objectFit = "cover";
+              img.style.borderRadius = "4px";
+              imageContainer.appendChild(img);
+            });
+
+            popupContent.appendChild(imageContainer);
+          }
+
+          // Create a popup without the close button, but closable on map click
+          const popup = new mapboxgl.Popup({
+            offset: 25,
+            closeButton: false,
+            closeOnClick: true,
+          }).setDOMContent(popupContent);
+
+          // Add marker to the map
           new mapboxgl.Marker(el)
             .setLngLat([marker.lng, marker.lat])
+            .setPopup(popup)
             .addTo(map);
         }
       });
@@ -122,13 +160,6 @@ const Map = () => {
     <div className="relative w-full h-full">
       <div ref={mapContainerRef} className="absolute inset-0" />
       <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 flex space-x-4">
-        <button
-          className="bg-orange-500 text-white p-3 rounded-full shadow-lg flex items-center"
-          onMouseDown={() => setDraggingPin("lost")}
-        >
-          <FaSearch className="text-xl mr-2" />
-          <span>Lost</span>
-        </button>
         <button
           className="bg-green-500 text-white p-3 rounded-full shadow-lg flex items-center"
           onMouseDown={() => setDraggingPin("found")}

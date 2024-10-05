@@ -7,5 +7,11 @@
       "photosPermission": "This app needs access to your photos to allow you to report lost or found pets.",
       "cameraPermission": "This app needs camera access to take photos of lost or found pets."
     }
+  },
+  "ios": {
+    "infoPlist": {
+      "NSLocalNetworkUsageDescription": "This app needs access to the local network to communicate with nearby devices.",
+      "NSBonjourServices": ["_http._tcp"]
+    }
   }
 }

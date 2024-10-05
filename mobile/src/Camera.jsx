@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaCamera,
   FaMapMarkerAlt,
@@ -8,53 +8,27 @@ import {
 } from "react-icons/fa";
 import PhotoCapture from "./PhotoCapture";
 
-// Updated mock data for missing pets
-const missingPets = [
-  {
-    id: 1,
-    name: "Max",
-    breed: "Golden Retriever",
-    contact: "123-456-7890",
-    owner: "John Doe",
-    missingDate: "2023-04-15",
-    location: { lat: 40.7128, lng: -74.006 },
-    images: [
-      "https://example.com/max1.jpg",
-      "https://example.com/max2.jpg",
-      "https://example.com/max3.jpg",
-    ],
-  },
-  {
-    id: 2,
-    name: "Luna",
-    breed: "Siamese Cat",
-    contact: "098-765-4321",
-    owner: "Jane Smith",
-    missingDate: "2023-05-01",
-    location: { lat: 34.0522, lng: -118.2437 },
-    images: ["https://example.com/luna1.jpg", "https://example.com/luna2.jpg"],
-  },
-  {
-    id: 3,
-    name: "Rocky",
-    breed: "German Shepherd",
-    contact: "111-222-3333",
-    owner: "Mike Johnson",
-    missingDate: "2023-05-10",
-    location: { lat: 37.7749, lng: -122.4194 },
-    images: [
-      "https://example.com/rocky1.jpg",
-      "https://example.com/rocky2.jpg",
-      "https://example.com/rocky3.jpg",
-      "https://example.com/rocky4.jpg",
-    ],
-  },
-];
-
 const CameraComponent = () => {
+  const [missingPets, setMissingPets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showCamera, setShowCamera] = useState(false);
   const [expandedPet, setExpandedPet] = useState(null);
   const [expandedImage, setExpandedImage] = useState(null);
+
+  useEffect(() => {
+    fetch("http://10.0.1.230:5001/missing-pets") // Replace with your actual backend URL
+      .then((response) => response.json())
+      .then((data) => {
+        setMissingPets(data.pets);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error fetching missing pets:", error);
+        setError(error);
+        setLoading(false);
+      });
+  }, []);
 
   const handlePhotoCapture = (imageUri) => {
     console.log("Captured image URI:", imageUri);
@@ -65,6 +39,22 @@ const CameraComponent = () => {
     const options = { year: "numeric", month: "long", day: "numeric" };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-500">Loading missing pets...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-red-500">Error loading missing pets.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-gray-100">
@@ -77,18 +67,18 @@ const CameraComponent = () => {
             <div className="space-y-4">
               {missingPets.map((pet) => (
                 <div
-                  key={pet.id}
+                  key={pet._id}
                   className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 ease-in-out"
                 >
                   <div
                     className="p-4 cursor-pointer flex items-center justify-between"
                     onClick={() =>
-                      setExpandedPet(expandedPet === pet.id ? null : pet.id)
+                      setExpandedPet(expandedPet === pet._id ? null : pet._id)
                     }
                   >
                     <div className="flex items-center">
                       <img
-                        src={pet.images[0]}
+                        src={pet.imageUrl}
                         alt={pet.name}
                         className="w-16 h-16 object-cover rounded-full mr-4 border-2 border-blue-500"
                       />
@@ -99,7 +89,7 @@ const CameraComponent = () => {
                         <p className="text-gray-600">{pet.breed}</p>
                       </div>
                     </div>
-                    {expandedPet === pet.id ? (
+                    {expandedPet === pet._id ? (
                       <FaChevronUp className="text-gray-500" />
                     ) : (
                       <FaChevronDown className="text-gray-500" />
@@ -107,38 +97,48 @@ const CameraComponent = () => {
                   </div>
                   <div
                     className={`bg-gray-50 overflow-hidden transition-all duration-300 ease-in-out ${
-                      expandedPet === pet.id ? "max-h-96" : "max-h-0"
+                      expandedPet === pet._id ? "max-h-96" : "max-h-0"
                     }`}
                   >
                     <div className="p-4 space-y-2">
                       <p className="text-gray-700">
-                        <span className="font-semibold">Owner:</span>{" "}
-                        {pet.owner}
+                        <span className="font-semibold">Age:</span> {pet.age}
                       </p>
                       <p className="text-gray-700">
-                        <span className="font-semibold">Contact:</span>{" "}
-                        {pet.contact}
+                        <span className="font-semibold">Color:</span>{" "}
+                        {pet.color}
                       </p>
+                      <p className="text-gray-700">
+                        <span className="font-semibold">Gender:</span>{" "}
+                        {pet.gender}
+                      </p>
+                      {pet.description && (
+                        <p className="text-gray-700">
+                          <span className="font-semibold">Description:</span>{" "}
+                          {pet.description}
+                        </p>
+                      )}
                       <p className="text-gray-700">
                         <span className="font-semibold">Missing since:</span>{" "}
-                        {formatDate(pet.missingDate)}
+                        {formatDate(pet.createdAt)}
                       </p>
-                      <p className="text-gray-700 flex items-center">
-                        <span className="font-semibold mr-1">Location:</span>
-                        <FaMapMarkerAlt className="text-red-500 mr-1" />
-                        {pet.location.lat.toFixed(4)},{" "}
-                        {pet.location.lng.toFixed(4)}
-                      </p>
-                      <div className="mt-2 flex flex-wrap">
-                        {pet.images.map((image, index) => (
-                          <img
-                            key={index}
-                            src={image}
-                            alt={`${pet.name} ${index + 1}`}
-                            className="w-16 h-16 object-cover rounded-md m-1 cursor-pointer hover:opacity-75 transition-opacity duration-200"
-                            onClick={() => setExpandedImage(image)}
-                          />
-                        ))}
+                      {pet.lastKnownLocation && (
+                        <p className="text-gray-700 flex items-center">
+                          <span className="font-semibold mr-1">
+                            Last Known Location:
+                          </span>
+                          <FaMapMarkerAlt className="text-red-500 mr-1" />
+                          {pet.lastKnownLocation.latitude.toFixed(4)},{" "}
+                          {pet.lastKnownLocation.longitude.toFixed(4)}
+                        </p>
+                      )}
+                      <div className="mt-2">
+                        <img
+                          src={pet.imageUrl}
+                          alt={pet.name}
+                          className="w-full h-auto object-cover rounded-md cursor-pointer hover:opacity-75 transition-opacity duration-200"
+                          onClick={() => setExpandedImage(pet.imageUrl)}
+                        />
                       </div>
                     </div>
                   </div>

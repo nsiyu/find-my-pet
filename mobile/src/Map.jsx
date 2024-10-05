@@ -14,6 +14,7 @@ const Map = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [newMarker, setNewMarker] = useState(null);
   const [foundPets, setFoundPets] = useState([]);
+  const [missingPets, setMissingPets] = useState([]);
 
   mapboxgl.accessToken =
     "pk.eyJ1Ijoid2lsbHk5MjAzMDUiLCJhIjoiY20xdTdkZWZyMGI0YTJsb2d6d3YxcGdtaiJ9.ZDORFIzrPgzd8bDfuemB4Q";
@@ -28,9 +29,20 @@ const Map = () => {
     }
   };
 
+  const fetchMissingPets = async () => {
+    try {
+      const response = await fetch("http://10.0.1.230:5001/missing-pets");
+      const data = await response.json();
+      setMissingPets(data.pets);
+    } catch (error) {
+      console.error("Error fetching missing pets:", error);
+    }
+  };
+
   // Fetch found pet data
   useEffect(() => {
     fetchFoundPets();
+    fetchMissingPets();
   }, []);
 
   useEffect(() => {
@@ -137,6 +149,77 @@ const Map = () => {
       });
     }
   }, [map, foundPets]);
+
+  // Add markers for missing pets
+  useEffect(() => {
+    if (map && missingPets.length > 0) {
+      missingPets.forEach((pet) => {
+        if (pet.lastKnownLocation) {
+          const { longitude, latitude } = pet.lastKnownLocation;
+
+          // Create a DOM element for the marker
+          const el = document.createElement("div");
+          el.className = "missing-pet-marker";
+          el.style.width = "30px";
+          el.style.height = "40px";
+          el.style.backgroundImage = `url('data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+            `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" fill="none">
+              <path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 24 12 24s12-16.8 12-24c0-6.6-5.4-12-12-12z" fill="#FF5722"/>
+              <circle cx="12" cy="12" r="8" fill="#FFFFFF"/>
+              <path d="M12 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2zm0 10c-.6 0-1-.4-1-1v-2c0-.6.4-1 1-1s1 .4 1 1v2c0 .6-.4 1-1 1z" fill="#FF5722"/>
+            </svg>`
+          )}')`;
+          el.style.backgroundSize = "contain";
+          el.style.backgroundRepeat = "no-repeat";
+          el.style.backgroundPosition = "center";
+          el.style.cursor = "pointer";
+
+          // Create popup content
+          const popupContent = document.createElement("div");
+          popupContent.innerHTML = `
+            <h3 style="color: black; font-weight: bold;">Missing Pet</h3>
+            <p style="color: black;"><strong>Name:</strong> ${
+              pet.name || "N/A"
+            }</p>
+            <p style="color: black;"><strong>Breed:</strong> ${
+              pet.breed || "N/A"
+            }</p>
+            <p style="color: black;"><strong>Last Seen:</strong> ${
+              pet.createdAt
+                ? new Date(pet.createdAt).toLocaleDateString()
+                : "N/A"
+            }</p>
+          `;
+
+          // Add image to popup if available
+          if (pet.imageUrl) {
+            const img = document.createElement("img");
+            img.src = pet.imageUrl;
+            img.alt = "Missing Pet";
+            img.style.width = "100%";
+            img.style.height = "auto";
+            img.style.objectFit = "cover";
+            img.style.borderRadius = "4px";
+            img.style.marginTop = "10px";
+            popupContent.appendChild(img);
+          }
+
+          // Create a popup
+          const popup = new mapboxgl.Popup({
+            offset: 25,
+            closeButton: false,
+            closeOnClick: true,
+          }).setDOMContent(popupContent);
+
+          // Add marker to the map
+          new mapboxgl.Marker(el)
+            .setLngLat([longitude, latitude])
+            .setPopup(popup)
+            .addTo(map);
+        }
+      });
+    }
+  }, [map, missingPets]);
 
   const addMarker = (e) => {
     if (draggingPin) {
@@ -309,7 +392,10 @@ const Map = () => {
           <span>Found</span>
         </button>
         <button
-          onClick={fetchFoundPets}
+          onClick={() => {
+            fetchFoundPets();
+            fetchMissingPets();
+          }}
           className="bg-blue-500 text-white p-2 rounded-md shadow-lg flex items-center"
         >
           <svg

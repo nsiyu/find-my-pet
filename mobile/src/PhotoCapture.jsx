@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { FaCamera, FaArrowLeft, FaImage } from "react-icons/fa";
 
+
 const PhotoCapture = ({ onCapture, onClose }) => {
   const [hasCameraPermission, setHasCameraPermission] = useState(false);
 

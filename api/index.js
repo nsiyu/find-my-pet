@@ -95,7 +95,7 @@ app.get("/missing-pets", async (req, res) => {
         try {
           const signedUrl = await pinata.gateways.createSignedURL({
             cid: pet.image,
-            expires: 3600, 
+            expires: 3600,
           });
           // Exclude sensitive data like userId
           const { userId, ...petData } = pet;

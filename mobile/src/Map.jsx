@@ -16,6 +16,7 @@ const Map = React.forwardRef(({ isPlacingMarker, onReportLocationSelected, mapUp
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [nearbyShelters, setNearbyShelters] = useState([]);
   const [showPlacementMessage, setShowPlacementMessage] = useState(false);
+  const [missingPets, setMissingPets] = useState([]);
 
   mapboxgl.accessToken =
     "pk.eyJ1Ijoid2lsbHk5MjAzMDUiLCJhIjoiY20xdTdkZWZyMGI0YTJsb2d6d3YxcGdtaiJ9.ZDORFIzrPgzd8bDfuemB4Q";
@@ -166,6 +167,45 @@ const Map = React.forwardRef(({ isPlacingMarker, onReportLocationSelected, mapUp
       });
     }
   }, [map, foundPets]);
+
+  useEffect(() => {
+    if (map && missingPets.length > 0) {
+      missingPets.forEach((pet) => {
+        const { longitude, latitude } = pet.lastKnownLocation;
+        const el = document.createElement("div");
+        el.className = "missing-pet-marker";
+        el.style.width = "40px";
+        el.style.height = "40px";
+        el.style.backgroundImage = `url(${pet.imageUrl || 'default-pet-image.jpg'})`;
+        el.style.backgroundSize = "cover";
+        el.style.backgroundPosition = "center";
+        el.style.borderRadius = "50%";
+        el.style.border = "3px solid #e07a5f";
+        el.style.cursor = "pointer";
+
+        const popupContent = document.createElement("div");
+        popupContent.className = "bg-eggshell p-4 rounded-lg shadow-md";
+        popupContent.innerHTML = `
+          <h3 class="text-xl font-bold text-delft-blue mb-2">Missing Pet</h3>
+          <img src="${pet.imageUrl || 'default-pet-image.jpg'}" alt="Missing Pet" class="w-full h-32 object-cover rounded-md mb-2">
+          <p class="text-burnt-sienna"><strong>Name:</strong> ${pet.name}</p>
+          <p class="text-burnt-sienna"><strong>Breed:</strong> ${pet.breed}</p>
+          <p class="text-burnt-sienna"><strong>Last seen:</strong> ${new Date(pet.lastSeenDate).toLocaleDateString()}</p>
+        `;
+
+        const popup = new mapboxgl.Popup({
+          offset: 25,
+          maxWidth: "300px",
+          className: "custom-popup",
+        }).setDOMContent(popupContent);
+
+        new mapboxgl.Marker(el)
+          .setLngLat([longitude, latitude])
+          .setPopup(popup)
+          .addTo(map);
+      });
+    }
+  }, [map, missingPets]);
 
   useEffect(() => {
     if (map && nearbyShelters.length > 0) {

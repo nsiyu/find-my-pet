@@ -4,10 +4,9 @@ import { FaPaw, FaCamera, FaEdit, FaMedal, FaHeart } from "react-icons/fa";
 const Profile = () => {
   const [user, setUser] = useState({
     name: "Li Shen",
-    email: "john.doe@example.com",
-    avatar: "https://media.licdn.com/dms/image/D5603AQHqi709BbDMqQ/profile-displayphoto-shrink_200_200/0/1702948465172?e=2147483647&v=beta&t=CRhUNQ1Jv-OLxZTjfKckLYkR8PdeQ-qgxqFAw3L8b1c",
+    email: "lishen@cornell.edu",
+    avatar: "https://ymgrad.com/media/logo/cornell.png",
     bio: "Animal lover and pet rescue enthusiast",
-    petsRescued: 5,
     postsCreated: 12,
     commentsLeft: 28,
   });
@@ -103,7 +102,7 @@ const Profile = () => {
           <h2 className="text-xl font-semibold text-delft-blue mb-3">Your Impact</h2>
           <div className="flex justify-around">
             <div className="text-center">
-              <p className="text-3xl font-bold text-burnt-sienna">{user.petsRescued}</p>
+              <p className="text-3xl font-bold text-burnt-sienna">{foundPets.length}</p>
               <p className="text-sm text-delft-blue">Pets Rescued</p>
             </div>
             <div className="text-center">

@@ -1,27 +1,27 @@
 import React, { useState } from "react";
 import Map from "./Map";
-import Camera from "./Camera";
-import Chat from "./Chat";
+import Home from "./Home";
+import Profile from "./Profile";
 import Navbar from "./Navbar";
+import './index.css';
 
 function App() {
-  const [activeView, setActiveView] = useState("Map");
+  const [activeView, setActiveView] = useState("Home");
 
   const handleViewChange = (view) => {
     setActiveView(view);
   };
 
   return (
-    <div className="App relative h-screen w-screen overflow-hidden">
+    <div className="App relative h-screen w-screen overflow-hidden bg-eggshell">
       <div className="absolute inset-0">
         {activeView === "Map" && <Map />}
-        {activeView === "Camera" && <Camera />}
-        {activeView === "Chat" && <Chat />}
+        {activeView === "Home" && <Home />}
+        {activeView === "Profile" && <Profile />}
       </div>
       <Navbar
-        onMapClick={() => handleViewChange("Map")}
-        onCameraClick={() => handleViewChange("Camera")}
-        onChatClick={() => handleViewChange("Chat")}
+        activeView={activeView}
+        onViewChange={handleViewChange}
       />
     </div>
   );

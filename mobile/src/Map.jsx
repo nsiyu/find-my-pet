@@ -2,10 +2,10 @@ import React, { useRef, useEffect, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { v4 as uuidv4 } from "uuid";
-import { FaPaw } from "react-icons/fa";
-import ReportPopup from "./ReportPopup";
-import axios from "axios"; // Make sure to install axios: npm install axios
+import { FaPaw, FaCamera, FaImage, FaTimes } from "react-icons/fa";
+import axios from "axios"; 
 import PhotoCapture from "./PhotoCapture";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 
 const Map = React.forwardRef((props, ref) => {
   const mapContainerRef = useRef(null);
@@ -17,7 +17,6 @@ const Map = React.forwardRef((props, ref) => {
   const [foundPets, setFoundPets] = useState([]);
   const [missingPets, setMissingPets] = useState([]);
   const [isPinPlacementMode, setIsPinPlacementMode] = useState(false);
-  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const [userLocation, setUserLocation] = useState(null);
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -30,9 +29,13 @@ const Map = React.forwardRef((props, ref) => {
 
   const fetchFoundPets = async () => {
     try {
-      const response = await fetch("http://10.0.1.230:5001/found-pets");
+      const response = await fetch("http://10.0.1.17:5001/found-pets");
       const data = await response.json();
-      setFoundPets(data.pets);
+      console.log(data);
+      setFoundPets(data.pets.map(pet => ({
+        ...pet,
+        pictureUrl: pet.pictureUrl || null
+      })));
     } catch (error) {
       console.error("Error fetching found pets:", error);
     }
@@ -40,7 +43,7 @@ const Map = React.forwardRef((props, ref) => {
 
   const fetchMissingPets = async () => {
     try {
-      const response = await fetch("http://10.0.1.230:5001/missing-pets");
+      const response = await fetch("http://10.0.1.17:5001/missing-pets");
       const data = await response.json();
       setMissingPets(data.pets);
     } catch (error) {
@@ -52,37 +55,21 @@ const Map = React.forwardRef((props, ref) => {
     if (!userLocation) return;
 
     const [lng, lat] = userLocation;
-    const apiKey = 'AIzaSyA4gKKq5zoPhEQvlS7LoDGR_OhStQpi1Ro';
-    const state = 'CA';
-    const type = 'animal_shelter';
+    const state = 'NY'; 
 
     try {
-      const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=animal+shelters+in+${state}&type=${type}&location=${lat},${lng}&radius=500000&key=${apiKey}`;
-      const response = await fetch(url);
+      const response = await fetch(`http://10.0.1.17:5001/api/shelters?lat=${lat}&lng=${lng}&state=${state}`);
       const data = await response.json();
-      console.log(data);
       if (data.results) {
-        // Sort results by distance and take the top 5
-        const sortedShelters = data.results
-          .map(shelter => {
-            const shelterLat = shelter.geometry.location.lat;
-            const shelterLng = shelter.geometry.location.lng;
-            const distance = calculateDistance(lat, lng, shelterLat, shelterLng);
-            return { ...shelter, distance };
-          })
-          .sort((a, b) => a.distance - b.distance)
-          .slice(0, 5);
-
-        setNearbyShelters(sortedShelters);
+        setNearbyShelters(data.results);
       }
     } catch (error) {
       console.error("Error fetching nearby shelters:", error);
     }
   };
 
-  // Add this helper function to calculate distance
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Radius of the earth in km
+    const R = 6371; 
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a =
@@ -90,7 +77,7 @@ const Map = React.forwardRef((props, ref) => {
       Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const d = R * c; // Distance in km
+    const d = R * c;
     return d;
   };
 
@@ -98,7 +85,6 @@ const Map = React.forwardRef((props, ref) => {
     return deg * (Math.PI / 180);
   };
 
-  // Fetch found pet data
   useEffect(() => {
     fetchFoundPets();
     fetchMissingPets();
@@ -115,7 +101,6 @@ const Map = React.forwardRef((props, ref) => {
         logoPosition: 'bottom-left'
       });
 
-      // Add zoom controls to the top right
       const nav = new mapboxgl.NavigationControl();
       mapInstance.addControl(nav, 'top-right');
 
@@ -123,8 +108,8 @@ const Map = React.forwardRef((props, ref) => {
         positionOptions: {
           enableHighAccuracy: true,
         },
-        trackUserLocation: true,
-        showUserHeading: true,
+        trackUserLocation: false,
+        showUserHeading: false,
         showAccuracyCircle: false,
       });
 
@@ -140,6 +125,8 @@ const Map = React.forwardRef((props, ref) => {
         const lat = e.coords.latitude;
         const position = [lon, lat];
         setUserLocation(position);
+        mapInstance.jumpTo({ center: position, zoom: 14 });
+        geolocate.off('geolocate'); // Remove the event listener after first use
       });
 
       // Add attribution control to the bottom left
@@ -174,8 +161,7 @@ const Map = React.forwardRef((props, ref) => {
           el.style.borderRadius = "50%";
           el.style.border = "3px solid #81b29a";
           el.style.cursor = "pointer";
-
-          // Create popup content
+          el.style.backgroundImage = `url(${pet.pictureUrl || 'default-pet-image.jpg'})`;
           const popupContent = document.createElement("div");
           popupContent.innerHTML = `
             <h3 style="color: black; font-weight: bold;">Found Pet</h3>
@@ -186,7 +172,6 @@ const Map = React.forwardRef((props, ref) => {
               pet.shelter || "N/A"
             }</p>
           `;
-
           // Add image to popup if available
           if (pet.pictureUrl) {
             const img = document.createElement("img");
@@ -199,8 +184,6 @@ const Map = React.forwardRef((props, ref) => {
             img.style.marginTop = "10px";
             popupContent.appendChild(img);
           }
-
-          // Create a popup
           const popup = new mapboxgl.Popup({
             offset: 25,
             closeButton: false,
@@ -267,14 +250,12 @@ const Map = React.forwardRef((props, ref) => {
             popupContent.appendChild(img);
           }
 
-          // Create a popup
           const popup = new mapboxgl.Popup({
             offset: 25,
             closeButton: false,
             closeOnClick: true,
           }).setDOMContent(popupContent);
 
-          // Add marker to the map
           new mapboxgl.Marker(el)
             .setLngLat([longitude, latitude])
             .setPopup(popup)
@@ -333,7 +314,7 @@ const Map = React.forwardRef((props, ref) => {
 
     try {
       const response = await axios.post(
-        "http://10.0.1.230:5001/register-found-pet",
+        "http://10.0.1.17:5001/register-found-pet",
         formData,
         {
           headers: {
@@ -341,6 +322,8 @@ const Map = React.forwardRef((props, ref) => {
           },
         }
       );
+
+      console.log("API Response:", response.data);
 
       if (response.status === 201) {
         const markerData = {
@@ -465,18 +448,63 @@ const Map = React.forwardRef((props, ref) => {
     }
   };
 
-  useEffect(() => {
-    if (map && userLocation) {
-      map.jumpTo({
-        center: userLocation,
-        zoom: 14
-      });
-    }
-  }, [map, userLocation]);
-
   React.useImperativeHandle(ref, () => ({
     centerMapOnUserLocation
   }));
+
+  useEffect(() => {
+    if (map && nearbyShelters.length > 0) {
+      nearbyShelters.forEach((shelter) => {
+        const { lat, lng } = shelter.geometry.location;
+        
+        // Create a DOM element for the marker
+        const el = document.createElement("div");
+        el.className = "shelter-marker";
+        el.style.width = "30px";
+        el.style.height = "30px";
+        el.style.backgroundImage = "url('https://img.icons8.com/color/48/000000/animal-shelter.png')";
+        el.style.backgroundSize = "cover";
+        el.style.backgroundPosition = "center";
+        el.style.borderRadius = "50%";
+        el.style.border = "2px solid #3FB1CE";
+        el.style.cursor = "pointer";
+
+        // Create popup content
+        const popupContent = document.createElement("div");
+        popupContent.innerHTML = `
+          <h3 style="color: black; font-weight: bold;">${shelter.name}</h3>
+          <p style="color: black;">${shelter.vicinity}</p>
+        `;
+
+        // Create a popup
+        const popup = new mapboxgl.Popup({
+          offset: 25,
+          closeButton: false,
+          closeOnClick: true,
+        }).setDOMContent(popupContent);
+
+        // Add marker to the map
+        new mapboxgl.Marker(el)
+          .setLngLat([lng, lat])
+          .setPopup(popup)
+          .addTo(map);
+      });
+    }
+  }, [map, nearbyShelters]);
+
+  const selectPhotoFromGallery = async () => {
+    try {
+      const image = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: true,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Photos
+      });
+      setSelectedImage(image.webPath);
+    } catch (error) {
+      console.error("Error selecting photo:", error);
+    }
+  };
 
   return (
     <div className="relative h-full w-full bg-eggshell">
@@ -545,17 +573,39 @@ const Map = React.forwardRef((props, ref) => {
                 className="w-full p-2 border border-cambridge-blue rounded-md focus:outline-none focus:ring-2 focus:ring-delft-blue"
                 required
               ></textarea>
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setShowPhotoCapture(true)}
-                  className="w-full p-2 bg-burnt-sienna text-eggshell rounded-md hover:bg-delft-blue transition-colors"
-                >
-                  Select or Take Photo
-                </button>
+              <div className="space-y-4">
+                <div className="flex justify-center space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoCapture(true)}
+                    className="flex-1 p-3 bg-burnt-sienna text-eggshell rounded-md hover:bg-delft-blue transition-colors flex items-center justify-center"
+                  >
+                    <FaCamera className="mr-2" />
+                    Take Photo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={selectPhotoFromGallery}
+                    className="flex-1 p-3 bg-cambridge-blue text-eggshell rounded-md hover:bg-delft-blue transition-colors flex items-center justify-center"
+                  >
+                    <FaImage className="mr-2" />
+                    Select Photo
+                  </button>
+                </div>
                 {selectedImage && (
-                  <div className="mt-2">
-                    <img src={selectedImage} alt="Selected pet" className="w-full h-32 object-cover rounded-md" />
+                  <div className="relative">
+                    <img
+                      src={selectedImage}
+                      alt="Selected pet"
+                      className="w-full h-48 object-cover rounded-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setSelectedImage(null)}
+                      className="absolute top-2 right-2 bg-burnt-sienna text-eggshell p-2 rounded-full hover:bg-delft-blue transition-colors"
+                    >
+                      <FaTimes />
+                    </button>
                   </div>
                 )}
               </div>
@@ -569,7 +619,7 @@ const Map = React.forwardRef((props, ref) => {
                 <option value="">Select a shelter</option>
                 {nearbyShelters.map((shelter) => (
                   <option key={shelter.place_id} value={shelter.name}>
-                    {shelter.name} ({shelter.distance.toFixed(2)} km)
+                    {shelter.name}
                   </option>
                 ))}
               </select>

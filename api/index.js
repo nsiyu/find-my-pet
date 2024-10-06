@@ -9,10 +9,9 @@ require("dotenv").config();
 
 const app = express();
 
-// Update CORS configuration
 app.use(
   cors({
-    origin: "*", // Be cautious with this in production
+    origin: "*", 
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -96,7 +95,7 @@ app.get("/missing-pets", async (req, res) => {
         try {
           const signedUrl = await pinata.gateways.createSignedURL({
             cid: pet.image,
-            expires: 3600, // URL expires in 1 hour
+            expires: 3600, 
           });
           // Exclude sensitive data like userId
           const { userId, ...petData } = pet;
@@ -286,7 +285,7 @@ app.get("/user-missing-pets", verifyToken, async (req, res) => {
         try {
           const signedUrl = await pinata.gateways.createSignedURL({
             cid: pet.image,
-            expires: 3600, // URL expires in 1 hour
+            expires: 3600, 
           });
           return { ...pet, imageUrl: signedUrl };
         } catch (error) {
@@ -354,7 +353,6 @@ app.post("/register-found-pet", upload.single("picture"), async (req, res) => {
       status: "found",
     };
 
-    // Insert the new found pet into the "found-pets" collection
     const result = await db.collection("found-pets").insertOne(newFoundPet);
 
     res.status(201).json({
@@ -370,14 +368,11 @@ app.post("/register-found-pet", upload.single("picture"), async (req, res) => {
   }
 });
 
-// Add this new endpoint after your existing endpoints
 app.get("/shelters", async (req, res) => {
   try {
-    // Fetch all shelters from the "shelters" collection
     const shelters = await db.collection("shelter").find({}).toArray();
 
     if (shelters.length === 0) {
-      // If no shelters exist, create and insert a default shelter
       const defaultShelter = {
         name: "Default Animal Shelter",
         address: "123 Main St, Anytown, USA",

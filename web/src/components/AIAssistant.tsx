@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaPaw } from "react-icons/fa";
+import { FaArrowLeft, FaPaw, FaRegPaperPlane } from "react-icons/fa";
 import axios from "axios";
+import Lottie from "react-lottie";
+import dogAnimation from "../assets/dog-animation.json"; // You'll need to add this JSON file
 
 const AIAssistant: React.FC = () => {
   const navigate = useNavigate();
@@ -14,8 +16,7 @@ const AIAssistant: React.FC = () => {
 
   useEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop =
-        chatContainerRef.current.scrollHeight;
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [conversation]);
 
@@ -28,44 +29,29 @@ const AIAssistant: React.FC = () => {
     setUserInput("");
     setIsLoading(true);
 
-    // Debug: Log user input and conversation state
-    console.log("User Input:", userInput);
-    console.log("Current Conversation:", [...conversation, newMessage]);
-
     try {
-      // Debug: Check if API key is loaded
-      console.log(
-        "OpenAI API Key:",
-        import.meta.env.VITE_OPENAI_API_KEY
-          ? "Loaded"
-          : "Not Found or Undefined"
-      );
-
-      // Optional: Log the exact API key (ONLY FOR DEBUGGING)
-      // ⚠️ Remove this in production!
-      // console.log("Actual API Key:", import.meta.env.VITE_OPENAI_API_KEY);
-
-      // Construct the request payload
       const payload = {
         model: "gpt-3.5-turbo",
         messages: [
           {
             role: "system",
-            content: `You are an AI assistant specialized in helping people find missing pets. 
-Provide empathetic, practical advice on steps to take, resources to use, and best practices for locating lost pets. 
-Focus on local search methods, online resources, and community engagement. 
-If asked about the FindMyPet app, explain its features for reporting and searching for lost pets.
-Always prioritize the safety and well-being of both the pet and the searcher.`,
+            content: `You are an AI assistant named PetFinder, specialized in helping people locate missing pets, particularly dogs. You are currently assisting an owner whose Border Collie named Li Shen is missing. Your primary functions are:
+
+1. Provide emotional support: Offer empathy and reassurance to the owner who is distressed about their lost Border Collie, Li Shen.
+2. Give practical advice: Suggest immediate actions and long-term strategies for finding Li Shen, tailored to Border Collie behavior and characteristics.
+3. Offer breed-specific insights: Provide information about common behaviors of Border Collies that might help in the search for Li Shen.
+4. Explain FindMyPet app features: When relevant, describe how to use the app's functionalities for reporting and searching for Li Shen.
+5. Suggest local resources: Recommend contacting local shelters, veterinarians, and using community networks that might be helpful in finding a Border Collie.
+6. Provide safety tips: Advise on safe search practices for both Li Shen and the owner.
+7. Answer questions: Respond to any queries about pet recovery, local laws, or other topics related to finding Li Shen.
+
+Always prioritize the well-being of both Li Shen and the owner. Tailor your responses to the specific details provided about Li Shen, such as his appearance, age, or any unique characteristics. If you don't have enough information, ask clarifying questions to provide more accurate assistance in finding this specific Border Collie.`,
           },
           ...conversation,
           newMessage,
         ],
       };
 
-      // Debug: Log the request payload
-      console.log("Request Payload:", payload);
-
-      // Make the API request
       const response = await axios.post(
         "https://api.openai.com/v1/chat/completions",
         payload,
@@ -77,34 +63,13 @@ Always prioritize the safety and well-being of both the pet and the searcher.`,
         }
       );
 
-      // Debug: Log the response from OpenAI
-      console.log("OpenAI Response:", response.data);
-
-      // Extract AI response
       const aiResponse = {
         role: "assistant",
         content: response.data.choices[0].message.content,
       };
       setConversation((prev) => [...prev, aiResponse]);
     } catch (error: any) {
-      // Detailed Error Logging
-      if (axios.isAxiosError(error)) {
-        console.error("Axios Error Details:", {
-          message: error.message,
-          response: error.response
-            ? {
-                status: error.response.status,
-                data: error.response.data,
-                headers: error.response.headers,
-              }
-            : "No response received",
-          config: error.config,
-        });
-      } else {
-        console.error("Unexpected Error:", error);
-      }
-
-      // Add error message to conversation
+      console.error("Error:", error);
       const errorMessage = {
         role: "assistant",
         content:
@@ -116,9 +81,18 @@ Always prioritize the safety and well-being of both the pet and the searcher.`,
     }
   };
 
+  const defaultOptions = {
+    loop: true,
+    autoplay: true,
+    animationData: dogAnimation,
+    rendererSettings: {
+      preserveAspectRatio: "xMidYMid slice"
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-alice-blue py-10 px-4">
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
+    <div className="min-h-screen bg-gradient-to-b from-alice-blue to-pale-dogwood py-10 px-4">
+      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6 relative">
         <div className="flex items-center mb-6">
           <button
             onClick={() => navigate("/")}
@@ -127,12 +101,15 @@ Always prioritize the safety and well-being of both the pet and the searcher.`,
             <FaArrowLeft size={24} />
           </button>
           <h2 className="text-3xl font-bold text-caribbean-current flex items-center">
-            <FaPaw className="mr-2" /> AI Pet Finder Assistant
+            <FaPaw className="mr-2 text-atomic-tangerine" /> AI Pet Finder Assistant
           </h2>
+        </div>
+        <div className="absolute top-4 right-4 w-24 h-24 -mt-6">
+          <Lottie options={defaultOptions} />
         </div>
         <div
           ref={chatContainerRef}
-          className="mb-4 h-96 overflow-y-auto border border-tiffany-blue rounded-md p-4"
+          className="mb-4 h-96 overflow-y-auto border border-tiffany-blue rounded-md p-4 bg-alice-blue"
         >
           {conversation.map((message, index) => (
             <div
@@ -154,7 +131,7 @@ Always prioritize the safety and well-being of both the pet and the searcher.`,
           ))}
           {isLoading && (
             <div className="text-center">
-              <span className="inline-block p-2 rounded-lg bg-gray-200">
+              <span className="inline-block p-2 rounded-lg bg-gray-200 animate-pulse">
                 AI is thinking...
               </span>
             </div>
@@ -166,13 +143,14 @@ Always prioritize the safety and well-being of both the pet and the searcher.`,
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             className="flex-grow p-3 border border-tiffany-blue rounded-l-md focus:outline-none focus:ring-2 focus:ring-atomic-tangerine"
-            placeholder="Ask about finding missing pets..."
+            placeholder="Ask about finding Li Shen..."
           />
           <button
             type="submit"
-            className="px-6 py-3 bg-atomic-tangerine text-white rounded-r-md hover:bg-caribbean-current transition-colors"
+            className="px-6 py-3 bg-atomic-tangerine text-white rounded-r-md hover:bg-caribbean-current transition-colors flex items-center"
             disabled={isLoading}
           >
+            <FaRegPaperPlane className="mr-2" />
             Send
           </button>
         </form>

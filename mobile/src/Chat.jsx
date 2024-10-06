@@ -10,10 +10,8 @@ const PetCorner = () => {
   }, []);
 
   const fetchPosts = async () => {
-    // Simulating API call to fetch posts
     setLoading(true);
     try {
-      // Replace this with actual API call when backend is ready
       const response = await fetch("http://10.0.1.230:5001/pet-posts");
       const data = await response.json();
       setPosts(data.posts);
@@ -25,12 +23,10 @@ const PetCorner = () => {
   };
 
   const handleLike = (postId) => {
-    // Implement like functionality
     console.log("Liked post:", postId);
   };
 
   const handleComment = (postId) => {
-    // Implement comment functionality
     console.log("Commenting on post:", postId);
   };
 

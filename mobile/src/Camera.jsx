@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   FaCamera,
   FaMapMarkerAlt,
-  FaTimes,
   FaChevronDown,
   FaChevronUp,
 } from "react-icons/fa";
@@ -17,7 +16,7 @@ const CameraComponent = () => {
   const [expandedImage, setExpandedImage] = useState(null);
 
   useEffect(() => {
-    fetch("http://10.0.1.17:5001/missing-pets") // Replace with your actual backend URL
+    fetch("http://10.0.1.17:5001/missing-pets") 
       .then((response) => response.json())
       .then((data) => {
         setMissingPets(data.pets);

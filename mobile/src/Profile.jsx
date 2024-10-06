@@ -20,7 +20,6 @@ const Profile = () => {
 
   const handleSave = () => {
     setIsEditing(false);
-    // Here you would typically send the updated user data to your backend
   };
 
   const handleChange = (e) => {

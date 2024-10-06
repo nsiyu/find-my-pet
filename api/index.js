@@ -421,6 +421,26 @@ app.get("/shelter/:id", async (req, res) => {
   }
 });
 
+app.get("/all-shelters", async (req, res) => {
+  try {
+    const shelters = await db.collection("shelter").find({}).toArray();
+
+    if (shelters.length === 0) {
+      return res.status(404).json({ message: "No shelters found" });
+    }
+
+    res.status(200).json({
+      message: "All shelters retrieved successfully",
+      shelters: shelters,
+    });
+  } catch (error) {
+    console.error("Error retrieving all shelters:", error);
+    res.status(500).json({
+      message: "An error occurred while retrieving all shelters",
+    });
+  }
+});
+
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

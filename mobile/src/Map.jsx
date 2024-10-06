@@ -346,7 +346,6 @@ const Map = React.forwardRef((props, ref) => {
 
         alert("Found pet registered successfully!");
 
-        // Refresh the page after a short delay
         setTimeout(() => {
           window.location.reload();
         }, 100);
@@ -366,7 +365,6 @@ const Map = React.forwardRef((props, ref) => {
     if (map) {
       markers.forEach((marker) => {
         if (!map.getLayer(`marker-${marker.id}`)) {
-          // Create a DOM element for the marker
           const el = document.createElement("div");
           el.className = "custom-marker";
           el.style.width = "40px";
@@ -463,7 +461,6 @@ const Map = React.forwardRef((props, ref) => {
       nearbyShelters.forEach((shelter) => {
         const { lat, lng } = shelter.geometry.location;
         
-        // Create a DOM element for the marker
         const el = document.createElement("div");
         el.className = "shelter-marker";
         el.style.width = "30px";

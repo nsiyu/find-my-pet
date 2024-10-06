@@ -9,9 +9,10 @@ require("dotenv").config();
 
 const app = express();
 
+// Update CORS configuration
 app.use(
   cors({
-    origin: "*", 
+    origin: "*", // Be cautious with this in production
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -134,22 +135,26 @@ app.get("/found-pets", async (req, res) => {
             cid: pet.picture,
             expires: 3600,
           });
-          
-          const shelter = await db
-            .collection("shelter")
-            .findOne({ name: pet.shelter });
+
+          let shelterInfo = null;
+          if (pet.shelter) {
+            const shelter = await db
+              .collection("shelter")
+              .findOne({ name: pet.shelter });
+            if (shelter) {
+              shelterInfo = {
+                name: shelter.name,
+                address: shelter.address,
+                phone: shelter.phone,
+                website: shelter.website,
+              };
+            }
+          }
 
           return {
             ...pet,
             pictureUrl: signedUrl,
-            shelterInfo: shelter
-              ? {
-                  name: shelter.name,
-                  address: shelter.address,
-                  phone: shelter.phone,
-                  website: shelter.website,
-                }
-              : null,
+            shelterInfo,
           };
         } catch (error) {
           console.error("Error processing pet:", pet._id, error);
@@ -302,7 +307,7 @@ app.get("/user-missing-pets", verifyToken, async (req, res) => {
     });
   }
 });
-const axios = require('axios');
+const axios = require("axios");
 
 app.get("/api/shelters", async (req, res) => {
   const { lat, lng, state } = req.query;

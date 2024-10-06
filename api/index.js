@@ -9,10 +9,9 @@ require("dotenv").config();
 
 const app = express();
 
-// Update CORS configuration
 app.use(
   cors({
-    origin: "*", // Be cautious with this in production
+    origin: "*", 
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })

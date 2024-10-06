@@ -36,22 +36,22 @@ const PetCorner = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-lg text-gray-600">Loading posts...</p>
+      <div className="flex justify-center items-center h-screen bg-lavender-web">
+        <p className="text-lg text-mountbatten-pink">Loading posts...</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-100 min-h-screen p-4">
-      <h1 className="text-3xl font-bold mb-6 text-center text-blue-600">
+    <div className="bg-lavender-web min-h-screen p-4">
+      <h1 className="text-3xl font-bold mb-6 text-center text-mountbatten-pink">
         <FaPaw className="inline-block mr-2" />
         Pet Corner
       </h1>
 
       <div className="space-y-6">
         {posts.map((post) => (
-          <div key={post.id} className="bg-white rounded-lg shadow-md p-4">
+          <div key={post.id} className="bg-pale-purple rounded-lg shadow-md p-4">
             <div className="flex items-center mb-2">
               <img
                 src={post.userAvatar}
@@ -59,11 +59,11 @@ const PetCorner = () => {
                 className="w-10 h-10 rounded-full mr-3"
               />
               <div>
-                <h3 className="font-semibold">{post.userName}</h3>
-                <p className="text-sm text-gray-500">{post.timestamp}</p>
+                <h3 className="font-semibold text-mountbatten-pink">{post.userName}</h3>
+                <p className="text-sm text-rose-quartz">{post.timestamp}</p>
               </div>
             </div>
-            <p className="mb-2">{post.content}</p>
+            <p className="mb-2 text-mountbatten-pink">{post.content}</p>
             {post.image && (
               <img
                 src={post.image}
@@ -74,14 +74,14 @@ const PetCorner = () => {
             <div className="flex justify-between items-center">
               <button
                 onClick={() => handleLike(post.id)}
-                className="flex items-center text-gray-600 hover:text-blue-500"
+                className="flex items-center text-rose-quartz hover:text-mountbatten-pink"
               >
                 <FaHeart className="mr-1" />
                 <span>{post.likes} Likes</span>
               </button>
               <button
                 onClick={() => handleComment(post.id)}
-                className="flex items-center text-gray-600 hover:text-blue-500"
+                className="flex items-center text-rose-quartz hover:text-mountbatten-pink"
               >
                 <FaComment className="mr-1" />
                 <span>{post.comments} Comments</span>

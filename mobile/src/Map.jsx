@@ -94,7 +94,7 @@ const Map = React.forwardRef((props, ref) => {
     const initializeMap = ({ setMap, mapContainerRef }) => {
       const mapInstance = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: 'mapbox://styles/mapbox/outdoors-v11',
+        style: 'mapbox://styles/mapbox/light-v11',
         center: [0, 0],
         zoom: 2,
         attributionControl: false,
@@ -118,6 +118,12 @@ const Map = React.forwardRef((props, ref) => {
       mapInstance.on('load', () => {
         geolocate.trigger();
         setMap(mapInstance);
+
+        // Adjust the map colors to better match the app's theme
+        mapInstance.setPaintProperty('land', 'background-color', '#f0ede5');
+        mapInstance.setPaintProperty('water', 'fill-color', '#c8d7e5');
+        mapInstance.setPaintProperty('road', 'line-color', '#e0d8c8');
+        mapInstance.setPaintProperty('building', 'fill-color', '#e8e0d5');
       });
 
       geolocate.on('geolocate', (e) => {
@@ -507,7 +513,7 @@ const Map = React.forwardRef((props, ref) => {
   };
 
   return (
-    <div className="relative h-full w-full bg-eggshell">
+    <div className="relative h-full w-full bg-[#f0ede5]">
       <div ref={mapContainerRef} className="absolute inset-0" />
       <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 flex space-x-4">
         <button

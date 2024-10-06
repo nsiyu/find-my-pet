@@ -1,161 +1,167 @@
 import React, { useState } from "react";
-import { Camera } from "@capacitor/camera";
-import { FaTimes, FaCamera } from "react-icons/fa";
+import { FaCamera, FaImage, FaTimes } from "react-icons/fa";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
+import PhotoCapture from "./PhotoCapture";
 
-const preventZoomStyle = `
-  input, textarea, select {
-    font-size: 16px;
-  }
-`;
+const ReportPopup = ({ onSubmit, onCancel, nearbyShelters, location }) => {
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedShelter, setSelectedShelter] = useState("");
+  const [showPhotoCapture, setShowPhotoCapture] = useState(false);
 
-const ReportPopup = ({ onSubmit, onCancel }) => {
-  const [images, setImages] = useState([]);
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Form submission started");
-
     const formData = new FormData(e.target);
+    formData.append("location", JSON.stringify(location)); // Ensure location is included
+    formData.append("date", new Date().toISOString()); // Example: current date
 
-    if (images.length > 0) {
-      try {
-        const response = await fetch(images[0]);
-        const blob = await response.blob();
-        formData.append("picture", blob, "image.jpg");
-
-        console.log("FormData entries:");
-        for (let [key, value] of formData.entries()) {
-          console.log(key, value);
-        }
-
-        // Convert FormData to a plain object
-        const plainObject = {};
-        for (let [key, value] of formData.entries()) {
-          plainObject[key] = value;
-        }
-
-        onSubmit(plainObject);
-      } catch (error) {
-        console.error("Error processing image:", error);
-        alert(
-          "An error occurred while processing the image. Please try again."
-        );
-      }
+    if (selectedImage) {
+      fetch(selectedImage)
+        .then(res => res.blob())
+        .then(blob => {
+          formData.append("picture", blob, "pet-photo.jpg");
+          onSubmit(formData);
+        })
+        .catch(error => {
+          console.error("Error processing image:", error);
+        });
     } else {
-      alert("Please select at least one image");
+      onSubmit(formData);
     }
   };
 
-  const handleImageSelection = async (e) => {
-    e.preventDefault(); // Prevent any default action
+  const selectPhotoFromGallery = async () => {
     try {
-      const permissionStatus = await Camera.checkPermissions();
-      if (permissionStatus.photos !== "granted") {
-        const permission = await Camera.requestPermissions({
-          permissions: ["photos"],
-        });
-        if (permission.photos !== "granted") {
-          alert("Permission to access photos is required.");
-          return;
-        }
-      }
-
-      const result = await Camera.pickImages({
+      const image = await Camera.getPhoto({
         quality: 90,
-        limit: 5 - images.length,
-        presentationStyle: "fullScreen",
+        allowEditing: true,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Photos
       });
-
-      if (result.photos) {
-        const newImages = result.photos.map((photo) => photo.webPath);
-        setImages([...images, ...newImages]);
-      }
+      setSelectedImage(image.webPath);
     } catch (error) {
-      console.error("Error selecting images:", error);
-      alert("An error occurred while selecting images. Please try again.");
+      console.error("Error selecting photo:", error);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <style>{preventZoomStyle}</style>
-      <div className="bg-white rounded-lg shadow-xl w-11/12 max-w-md max-h-[90vh] flex flex-col">
-        <div className="flex justify-between items-center p-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-800">
-            Report Found Pet
-          </h2>
-          <button
-            onClick={onCancel}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            <FaTimes />
-          </button>
-        </div>
-        <form
-          onSubmit={handleSubmit}
-          className="p-4 space-y-4 overflow-y-auto flex-grow"
-        >
+    <div className="fixed inset-0 bg-delft-blue bg-opacity-50 flex items-center justify-center z-20">
+      <div className="bg-eggshell p-4 rounded-lg shadow-lg max-w-sm w-full">
+        <h2 className="text-2xl font-bold mb-4 text-delft-blue">Report Found Pet</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <input
-            type="date"
-            name="date"
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-            placeholder="Date"
+            type="text"
+            name="petType"
+            placeholder="Pet Type (e.g., Dog, Cat)"
+            className="w-full p-2 border border-cambridge-blue rounded-md focus:outline-none focus:ring-2 focus:ring-delft-blue"
             required
           />
           <input
             type="text"
-            name="shelter"
-            placeholder="Shelter Name"
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-            required
+            name="breed"
+            placeholder="Breed (if known)"
+            className="w-full p-2 border border-cambridge-blue rounded-md focus:outline-none focus:ring-2 focus:ring-delft-blue"
           />
-          <button
-            type="button"
-            onClick={handleImageSelection}
-            className="w-full p-2 bg-blue-500 text-white rounded-md flex items-center justify-center hover:bg-blue-600 transition-colors"
-            disabled={images.length >= 5}
-          >
-            <FaCamera className="mr-2" />
-            Add Image ({images.length}/5)
-          </button>
-          {images.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {images.map((img, index) => (
-                <div key={index} className="relative">
-                  <img
-                    src={img}
-                    alt={`Uploaded ${index + 1}`}
-                    className="w-16 h-16 object-cover rounded-md"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setImages(images.filter((_, i) => i !== index))
-                    }
-                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+          <textarea
+            name="description"
+            placeholder="Description"
+            className="w-full p-2 border border-cambridge-blue rounded-md focus:outline-none focus:ring-2 focus:ring-delft-blue"
+            required
+          ></textarea>
+          <div className="space-y-4">
+            <div className="flex justify-center space-x-4">
+              <button
+                type="button"
+                onClick={() => setShowPhotoCapture(true)}
+                className="flex-1 p-3 bg-burnt-sienna text-eggshell rounded-md hover:bg-delft-blue transition-colors flex items-center justify-center"
+              >
+                <FaCamera className="mr-2" />
+                Take Photo
+              </button>
+              <button
+                type="button"
+                onClick={selectPhotoFromGallery}
+                className="flex-1 p-3 bg-cambridge-blue text-eggshell rounded-md hover:bg-delft-blue transition-colors flex items-center justify-center"
+              >
+                <FaImage className="mr-2" />
+                Select Photo
+              </button>
             </div>
-          )}
-          <div className="flex justify-end space-x-2 mt-4">
+            {selectedImage && (
+              <div className="relative">
+                <img
+                  src={selectedImage}
+                  alt="Selected pet"
+                  className="w-full h-48 object-cover rounded-md"
+                />
+                <button
+                  type="button"
+                  onClick={() => setSelectedImage(null)}
+                  className="absolute top-2 right-2 bg-burnt-sienna text-eggshell p-2 rounded-full hover:bg-delft-blue transition-colors"
+                >
+                  <FaTimes />
+                </button>
+              </div>
+            )}
+          </div>
+          <div>
+            <label htmlFor="date" className="block text-sm font-medium text-delft-blue">
+              Date Found
+            </label>
+            <input
+              type="date"
+              name="date"
+              id="date"
+              className="w-full p-2 border border-cambridge-blue rounded-md focus:outline-none focus:ring-2 focus:ring-delft-blue"
+              required
+              defaultValue={new Date().toISOString().split('T')[0]} // Sets today's date as default
+            />
+          </div>
+          <select
+            name="shelter"
+            value={selectedShelter}
+            onChange={(e) => setSelectedShelter(e.target.value)}
+            className="w-full p-2 border border-cambridge-blue rounded-md focus:outline-none focus:ring-2 focus:ring-delft-blue"
+            required
+          >
+            <option value="">Select a shelter</option>
+            {nearbyShelters.length > 0 ? (
+              nearbyShelters.map((shelter) => (
+                <option key={shelter.place_id} value={shelter.name}>
+                  {shelter.name}
+                </option>
+              ))
+            ) : (
+              <option value="" disabled>
+                No shelters available
+              </option>
+            )}
+          </select>
+          <div className="flex justify-end space-x-2">
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+              className="px-4 py-2 bg-sunset text-delft-blue rounded-md hover:bg-cambridge-blue hover:text-eggshell transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+              className="px-4 py-2 bg-delft-blue text-eggshell rounded-md hover:bg-burnt-sienna transition-colors"
             >
               Submit
             </button>
           </div>
         </form>
+
+        {showPhotoCapture && (
+          <PhotoCapture
+            onCapture={(imageUri) => {
+              setSelectedImage(imageUri);
+              setShowPhotoCapture(false);
+            }}
+            onClose={() => setShowPhotoCapture(false)}
+          />
+        )}
       </div>
     </div>
   );

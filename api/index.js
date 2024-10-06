@@ -328,7 +328,9 @@ app.post("/register-found-pet", upload.single("picture"), async (req, res) => {
   try {
     const { location, date, shelter } = req.body;
     const pictureFile = req.file;
-    console.log(shelter)
+
+    console.log("Received location:", location);
+
     if (!location || !date || !shelter) {
       return res.status(400).json({
         message: "Location, date, and shelter are required fields",
@@ -339,19 +341,37 @@ app.post("/register-found-pet", upload.single("picture"), async (req, res) => {
       return res.status(400).json({ message: "Picture file is required" });
     }
 
+    // Parse the location if it's a string
+    let parsedLocation;
+    try {
+      parsedLocation = typeof location === 'string' ? JSON.parse(location) : location;
+    } catch (error) {
+      console.error("Error parsing location:", error);
+      return res.status(400).json({ message: "Invalid location format" });
+    }
+
+    if (!parsedLocation.lat || !parsedLocation.lng) {
+      return res.status(400).json({ message: "Invalid location format. Must include lat and lng." });
+    }
+
     const file = new File([pictureFile.buffer], pictureFile.originalname, {
       type: pictureFile.mimetype,
     });
     const uploadResult = await pinata.upload.file(file);
 
     const newFoundPet = {
-      location: JSON.parse(location),
+      location: {
+        latitude: parsedLocation.lat,
+        longitude: parsedLocation.lng
+      },
       date: new Date(date), 
       shelter,
       picture: uploadResult.cid,
       createdAt: new Date(),
       status: "found",
     };
+
+    console.log("New found pet:", newFoundPet);
 
     const result = await db.collection("found-pets").insertOne(newFoundPet);
 

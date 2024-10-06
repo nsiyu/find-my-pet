@@ -17,7 +17,7 @@ const CameraComponent = () => {
   const [expandedImage, setExpandedImage] = useState(null);
 
   useEffect(() => {
-    fetch("http://10.0.1.230:5001/missing-pets") // Replace with your actual backend URL
+    fetch("http://10.0.1.17:5001/missing-pets") // Replace with your actual backend URL
       .then((response) => response.json())
       .then((data) => {
         setMissingPets(data.pets);

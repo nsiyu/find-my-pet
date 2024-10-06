@@ -129,6 +129,7 @@ app.get("/found-pets", async (req, res) => {
 
     const petsWithSignedUrls = await Promise.all(
       foundPets.map(async (pet) => {
+        console.log('pet', pet);
         try {
           const signedUrl = await pinata.gateways.createSignedURL({
             cid: pet.picture,
@@ -328,29 +329,25 @@ app.post("/register-found-pet", upload.single("picture"), async (req, res) => {
   try {
     const { location, date, shelter } = req.body;
     const pictureFile = req.file;
-
-    // Validate required fields
+    console.log(shelter)
     if (!location || !date || !shelter) {
       return res.status(400).json({
         message: "Location, date, and shelter are required fields",
       });
     }
 
-    // Validate picture file
     if (!pictureFile) {
       return res.status(400).json({ message: "Picture file is required" });
     }
 
-    // Prepare the image file for upload to Pinata/IPFS
     const file = new File([pictureFile.buffer], pictureFile.originalname, {
       type: pictureFile.mimetype,
     });
     const uploadResult = await pinata.upload.file(file);
 
-    // Construct the new found pet object
     const newFoundPet = {
-      location: JSON.parse(location), // Assuming location is sent as a JSON string
-      date: new Date(date), // Ensure the date is in a proper Date format
+      location: JSON.parse(location),
+      date: new Date(date), 
       shelter,
       picture: uploadResult.cid,
       createdAt: new Date(),

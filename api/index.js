@@ -122,27 +122,39 @@ app.get("/missing-pets", async (req, res) => {
 
 app.get("/found-pets", async (req, res) => {
   try {
-    // Fetch all found pets from the "found-pets" collection
     const foundPets = await db
       .collection("found-pets")
       .find({ status: "found" })
       .toArray();
 
-    // Generate signed URLs for each pet's picture
     const petsWithSignedUrls = await Promise.all(
       foundPets.map(async (pet) => {
         try {
           const signedUrl = await pinata.gateways.createSignedURL({
-            cid: pet.picture, // Using 'picture' instead of 'image'
-            expires: 3600, // URL expires in 1 hour
+            cid: pet.picture,
+            expires: 3600,
           });
 
-          // Return the pet data with the signed image URL
-          return { ...pet, pictureUrl: signedUrl };
+          // Fetch shelter information
+          const shelter = await db
+            .collection("shelter")
+            .findOne({ _id: new ObjectId(pet.shelter) });
+
+          return {
+            ...pet,
+            pictureUrl: signedUrl,
+            shelterInfo: shelter
+              ? {
+                  name: shelter.name,
+                  address: shelter.address,
+                  phone: shelter.phone,
+                  website: shelter.website,
+                }
+              : null,
+          };
         } catch (error) {
-          console.error("Error creating signed URL for pet:", pet._id, error);
-          // If there's an error generating the signed URL, set pictureUrl to null
-          return { ...pet, pictureUrl: null };
+          console.error("Error processing pet:", pet._id, error);
+          return { ...pet, pictureUrl: null, shelterInfo: null };
         }
       })
     );
@@ -291,6 +303,23 @@ app.get("/user-missing-pets", verifyToken, async (req, res) => {
     });
   }
 });
+const axios = require('axios');
+
+app.get("/api/shelters", async (req, res) => {
+  const { lat, lng, state } = req.query;
+  const apiKey = "AIzaSyA4gKKq5zoPhEQvlS7LoDGR_OhStQpi1Ro";
+  const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=animal+shelters+in+${state}&type=animal_shelter&location=${lat},${lng}&radius=500000&key=${apiKey}`;
+
+  try {
+    const response = await axios.get(url);
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching shelters:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while fetching shelters" });
+  }
+});
 
 app.post("/register-found-pet", upload.single("picture"), async (req, res) => {
   try {
@@ -337,6 +366,62 @@ app.post("/register-found-pet", upload.single("picture"), async (req, res) => {
     console.error("Error registering found pet:", error);
     res.status(500).json({
       message: "An error occurred while registering the found pet",
+    });
+  }
+});
+
+// Add this new endpoint after your existing endpoints
+app.get("/shelters", async (req, res) => {
+  try {
+    // Fetch all shelters from the "shelters" collection
+    const shelters = await db.collection("shelter").find({}).toArray();
+
+    if (shelters.length === 0) {
+      // If no shelters exist, create and insert a default shelter
+      const defaultShelter = {
+        name: "Default Animal Shelter",
+        address: "123 Main St, Anytown, USA",
+        phone: "(555) 123-4567",
+        website: "https://www.defaultshelter.com",
+      };
+
+      await db.collection("shelters").insertOne(defaultShelter);
+      shelters.push(defaultShelter);
+    }
+
+    res.status(200).json({
+      message: "Shelters retrieved successfully",
+      shelters: shelters,
+    });
+  } catch (error) {
+    console.error("Error retrieving shelters:", error);
+    res.status(500).json({
+      message: "An error occurred while retrieving shelters",
+    });
+  }
+});
+
+app.get("/shelter/:id", async (req, res) => {
+  try {
+    const shelterId = req.params.id;
+    const shelter = await db
+      .collection("shelter")
+      .findOne({ _id: new ObjectId(shelterId) });
+
+    if (!shelter) {
+      return res.status(404).json({ message: "Shelter not found" });
+    }
+
+    res.status(200).json({
+      name: shelter.name,
+      address: shelter.address,
+      phone: shelter.phone,
+      website: shelter.website,
+    });
+  } catch (error) {
+    console.error("Error fetching shelter information:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching shelter information",
     });
   }
 });

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaPaw, FaCamera, FaEdit, FaMedal, FaHeart } from "react-icons/fa";
 
 const Profile = () => {
@@ -11,8 +11,22 @@ const Profile = () => {
     postsCreated: 12,
     commentsLeft: 28,
   });
-
   const [isEditing, setIsEditing] = useState(false);
+  const [foundPets, setFoundPets] = useState([]);
+
+  useEffect(() => {
+    const fetchFoundPets = async () => {
+      try {
+        const response = await fetch("http://10.0.1.17:5001/found-pets");
+        const data = await response.json();
+        setFoundPets(data.pets);
+      } catch (error) {
+        console.error("Error fetching found pets:", error);
+      }
+    };
+
+    fetchFoundPets();
+  }, []);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -125,6 +139,27 @@ const Profile = () => {
               <h3 className="font-semibold text-delft-blue">Compassionate Commenter</h3>
               <p className="text-sm text-burnt-sienna">Left 25+ comments</p>
             </div>
+          </div>
+        </div>
+
+        {/* Found Pets Section */}
+        <div className="mt-6">
+          <h2 className="text-2xl font-semibold text-delft-blue mb-3">Pets You've Found</h2>
+          <div className="space-y-4">
+            {foundPets.map((pet) => (
+              <div key={pet._id} className="bg-white rounded-xl shadow-md p-4 flex items-center">
+                <img
+                  src={pet.pictureUrl || 'default-pet-image.jpg'}
+                  alt={`Found ${pet.petType}`}
+                  className="w-16 h-16 object-cover rounded-full mr-4 border-2 border-burnt-sienna"
+                />
+                <div>
+                  <h3 className="font-semibold text-delft-blue">{pet.petType}</h3>
+                  <p className="text-sm text-burnt-sienna">Found on: {new Date(pet.date).toLocaleDateString()}</p>
+                  <p className="text-sm text-burnt-sienna">Shelter: {pet.shelter}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

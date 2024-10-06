@@ -6,6 +6,7 @@ import { FaTimes } from "react-icons/fa";
 import axios from "axios"; 
 import PhotoCapture from "./PhotoCapture";
 import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
+import { FaBell } from "react-icons/fa";
 
 const Map = React.forwardRef(({ isPlacingMarker, onReportLocationSelected, mapUpdateTrigger }) => {
   const mapContainerRef = useRef(null);
@@ -143,25 +144,19 @@ const Map = React.forwardRef(({ isPlacingMarker, onReportLocationSelected, mapUp
         el.style.cursor = "pointer";
 
         const popupContent = document.createElement("div");
+        popupContent.className = "bg-eggshell p-4 rounded-lg shadow-md";
         popupContent.innerHTML = `
-          <h3 style="color: black; font-weight: bold;">Found Pet</h3>
-          <p style="color: black;"><strong>Date:</strong> ${pet.date || "N/A"}</p>
-          <p style="color: black;"><strong>Shelter:</strong> ${pet.shelter || "N/A"}</p>
+          <h3 class="text-xl font-bold text-delft-blue mb-2">Found Pet</h3>
+          <img src="${pet.pictureUrl || 'default-pet-image.jpg'}" alt="Found Pet" class="w-full h-32 object-cover rounded-md mb-2">
+          <p class="text-burnt-sienna"><strong>Date:</strong> ${pet.date || "N/A"}</p>
+          <p class="text-burnt-sienna"><strong>Shelter:</strong> ${pet.shelter || "N/A"}</p>
+          <p class="text-burnt-sienna"><strong>Found by:</strong> Li Shen</p>
         `;
-
-        if (pet.pictureUrl) {
-          const img = document.createElement("img");
-          img.src = pet.pictureUrl;
-          img.alt = "Found Pet";
-          img.style.width = "100%";
-          img.style.height = "auto";
-          img.style.objectFit = "cover";
-          popupContent.appendChild(img);
-        }
 
         const popup = new mapboxgl.Popup({
           offset: 25,
           maxWidth: "300px",
+          className: "custom-popup",
         }).setDOMContent(popupContent);
 
         new mapboxgl.Marker(el)
@@ -262,7 +257,7 @@ const Map = React.forwardRef(({ isPlacingMarker, onReportLocationSelected, mapUp
     <div className="map-container" ref={mapContainerRef} style={{ height: "100%", width: "100%" }}>
       {showPlacementMessage && (
         <div className="absolute top-14 left-1/2 transform -translate-x-1/2 bg-delft-blue bg-opacity-80 text-eggshell px-4 py-2 rounded-full shadow-lg z-10">
-          <p className="text-sm font-semibold">
+          <p className="text-sm font-semibold text-center">
             Tap on the map to place a found pet
           </p>
         </div>
@@ -276,6 +271,11 @@ const Map = React.forwardRef(({ isPlacingMarker, onReportLocationSelected, mapUp
           onClose={() => setShowPhotoCapture(false)}
         />
       )}
+      <div className="absolute top-16 right-4 z-10 notification-icon">
+        <button className="bg-delft-blue text-eggshell p-2 rounded-full shadow-lg hover:bg-burnt-sienna transition-colors">
+          <FaBell className="text-xl" />
+        </button>
+      </div>
     </div>
   );
 });

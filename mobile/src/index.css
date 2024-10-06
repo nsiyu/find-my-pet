@@ -31,7 +31,7 @@ body {
   filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(93deg) brightness(103%) contrast(103%);
 }
 .mapboxgl-ctrl-top-right {
-  top: 60px;
+  top: 110px;
   right: 20px;
 }
 
@@ -46,4 +46,20 @@ body {
 
 .mapboxgl-ctrl-group button + button {
   margin-top: 5px;
+}
+
+.custom-popup .mapboxgl-popup-content {
+  padding: 0;
+  overflow: hidden;
+}
+
+.custom-popup .mapboxgl-popup-close-button {
+  color: #3d5a80;
+  font-size: 16px;
+  padding: 5px 10px;
+}
+
+.custom-popup .mapboxgl-popup-close-button:hover {
+  background-color: transparent;
+  color: #ee6c4d;
 }
